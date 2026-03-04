@@ -1,0 +1,140 @@
+
+[36m[1m   ╔═══════════════════════════════════════════════════╗
+   ║[0m[35m[1m   ____                             __  __         [36m[1m║
+   ║[0m[35m[1m  / __/___  ______ ___  ____       /  |/  /__ ____  [36m[1m║
+   ║[0m[35m[1m _\ \/ -_) / __/ // / / -_) __/   / /|_/ / _ '/ _ \ [36m[1m║
+   ║[0m[35m[1m/___/\__/ /_/  \_,_/  \__/_/     /_/  /_/\_,_/_//_/ [36m[1m║
+   ║[0m[2m               Server Manager API v1.0              [36m[1m║
+   ╚═══════════════════════════════════════════════════╝[0m
+  [33m⏳ 初始化数据库...[0m
+  [32m✅ 数据库初始化完成[0m
+
+[2m   ┌──────────────────────────────────────────────┐[0m
+[2m   │[0m[1m  📡  API Routes                               [2m│[0m
+[2m   ├──────────────────────────────────────────────┤[0m
+[2m   │[0m  [36m[1mPOST[0m [2m/api/auth/login           [0m 用户登录[2m[0m  [2m
+[0m[2m   │[0m  [36m[1mPOST[0m [2m/api/auth/logout          [0m 退出登录[2m[0m  [2m
+[0m[2m   │[0m  [33m[1mPUT [0m [2m/api/auth/password        [0m 修改密码[2m[0m  [2m
+[0m[2m   │[0m  [32m[1mGET [0m [2m/api/servers              [0m 服务器列表[2m[0m  [2m
+[0m[2m   │[0m  [36m[1mPOST[0m [2m/api/servers              [0m 添加服务器[2m[0m  [2m
+[0m[2m   │[0m  [32m[1mGET [0m [2m/api/servers/stats/batch  [0m 批量状态[2m[0m  [2m
+[0m[2m   │[0m  [32m[1mGET [0m [2m/api/servers/:id          [0m 服务器详情[2m[0m  [2m
+[0m[2m   │[0m  [33m[1mPUT [0m [2m/api/servers/:id          [0m 更新服务器[2m[0m  [2m
+[0m[2m   │[0m  [31m[1mDEL [0m [2m/api/servers/:id          [0m 删除服务器[2m[0m  [2m
+[0m[2m   │[0m  [36m[1mPOST[0m [2m/api/servers/:id/test     [0m 测试连接[2m[0m  [2m
+[0m[2m   │[0m  [32m[1mGET [0m [2m/api/servers/:id/stats    [0m 实时状态[2m[0m  [2m
+[0m[2m   │[0m  [32m[1mGET [0m [2m/api/groups               [0m 分组列表[2m[0m  [2m
+[0m[2m   │[0m  [36m[1mPOST[0m [2m/api/groups               [0m 创建分组[2m[0m  [2m
+[0m[2m   │[0m  [33m[1mPUT [0m [2m/api/groups/:id           [0m 更新分组[2m[0m  [2m
+[0m[2m   │[0m  [31m[1mDEL [0m [2m/api/groups/:id           [0m 删除分组[2m[0m  [2m
+[0m[2m   │[0m  [35m[1mWS  [0m [2m/ws/servers/:id/terminal  [0m SSH 终端[2m[0m  [2m
+[0m[2m   │[0m  [32m[1mGET [0m [2m/health                   [0m 健康检查[2m[0m  [2m
+[0m[2m   └──────────────────────────────────────────────┘[0m
+
+  [32m[1m🚀 Server Manager 已启动[0m
+  [2m📍 监听地址: [0m[1m[36mhttp://localhost:8080[0m
+  [2m📋 健康检查: [0m[36mhttp://localhost:8080/health[0m
+  [2m⏱  启动时间: [0m[37m2026-03-04 16:04:53[0m
+
+[2m  ─────────────────────────────────────────────────[0m
+[2m  等待请求中...[0m
+
+[2m  16:09:34[0m [32m[1mGET    [0m [32m[1m200[0m [32m   597µs[0m [2m/api/servers[0m
+[2m  16:09:34[0m [32m[1mGET    [0m [32m[1m200[0m [32m   167µs[0m [2m/api/groups[0m
+[2m  16:09:43[0m [32m[1mGET    [0m [32m[1m200[0m [31m6.796757s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:43[0m [32m[1mGET    [0m [32m[1m200[0m [31m 3.7994s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:44[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.806934s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:47[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.022214s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:47[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.022425s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:47[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.792127s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:50[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.055764s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:50[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.058102s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:50[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.78472s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:53[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.067123s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:53[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.080641s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:53[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.792453s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:56[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.031238s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:56[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.026319s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:56[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.762554s[0m [2m/api/servers/stats/batch[0m
+[2m  16:09:59[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.973495s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:59[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.981226s[0m [2m/api/servers/1/stats[0m
+[2m  16:09:59[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.754066s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:02[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.001326s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:02[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.995382s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:02[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.760369s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:05[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.016061s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:05[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.009243s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:05[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.774997s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:08[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.996434s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:08[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.005506s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:08[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.787519s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:11[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.055935s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:11[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.072732s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:11[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.792789s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:14[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.991546s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:14[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.003036s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:14[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.773025s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:17[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.003379s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:17[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.997668s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:17[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.779147s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:20[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.029013s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:20[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.038549s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:20[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.770897s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:23[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.976173s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:23[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.980705s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:23[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.768127s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:26[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.007034s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:26[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.013447s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:26[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.773534s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:29[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.992684s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:29[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.984475s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:29[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.773753s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:32[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.955092s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:32[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.963151s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:32[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.768571s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:35[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.978001s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:35[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.98142s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:35[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.777455s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:38[0m [32m[1mGET    [0m [32m[1m200[0m [31m 1.9712s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:38[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.96602s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:38[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.776409s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:41[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.979791s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:41[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.972301s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:41[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.772829s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:44[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.015568s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:44[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.014059s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:44[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.772734s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:47[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.087066s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:47[0m [32m[1mGET    [0m [32m[1m200[0m [31m 2.0953s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:47[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.819917s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:50[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.004889s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:50[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.010779s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:50[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.775708s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:53[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.969384s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:53[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.977981s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:53[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.799051s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:56[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.989726s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:56[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.995337s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:56[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.765253s[0m [2m/api/servers/stats/batch[0m
+[2m  16:10:59[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.98401s[0m [2m/api/servers/1/stats[0m
+[2m  16:10:59[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.978938s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:01[0m [32m[1mGET    [0m [32m[1m200[0m [31m3.617818s[0m [2m/api/servers/stats/batch[0m
+[2m  16:11:02[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.044371s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:02[0m [32m[1mGET    [0m [32m[1m200[0m [31m2.03676s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:02[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.77102s[0m [2m/api/servers/stats/batch[0m
+[2m  16:11:05[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.950621s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:05[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.960241s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:05[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.759377s[0m [2m/api/servers/stats/batch[0m
+[2m  16:11:08[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.968013s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:08[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.961174s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:08[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.756603s[0m [2m/api/servers/stats/batch[0m
+[2m  16:11:11[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.950216s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:11[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.959274s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:11[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.766839s[0m [2m/api/servers/stats/batch[0m
+[2m  16:11:14[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.961097s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:14[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.954725s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:14[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.766716s[0m [2m/api/servers/stats/batch[0m
+[2m  16:11:17[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.957589s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:17[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.948949s[0m [2m/api/servers/1/stats[0m
+[2m  16:11:17[0m [32m[1mGET    [0m [32m[1m200[0m [31m1.763876s[0m [2m/api/servers/stats/batch[0m
+signal: killed
