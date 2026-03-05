@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:server_manager/models/server.dart';
 import 'package:server_manager/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ServerProvider extends ChangeNotifier {
   final ApiService _api = ApiService();
@@ -206,6 +207,29 @@ class AuthProvider extends ChangeNotifier {
     await _api.logout();
     _isLoggedIn = false;
     _username = '';
+    notifyListeners();
+  }
+}
+
+class SettingsProvider extends ChangeNotifier {
+  double _terminalFontSize = 13.0;
+
+  double get terminalFontSize => _terminalFontSize;
+
+  SettingsProvider() {
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _terminalFontSize = prefs.getDouble('terminalFontSize') ?? 13.0;
+    notifyListeners();
+  }
+
+  Future<void> setTerminalFontSize(double size) async {
+    _terminalFontSize = size;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('terminalFontSize', size);
     notifyListeners();
   }
 }

@@ -11,12 +11,14 @@ type User struct {
 	gorm.Model
 	Username string `json:"username" gorm:"uniqueIndex;not null"`
 	Password string `json:"-" gorm:"not null"`
+	Role     string `json:"role" gorm:"default:'admin'"` // 默认为 admin 方便兼容旧用户
 }
 
 // ServerGroup 服务器分组
 type ServerGroup struct {
 	gorm.Model
 	Name    string   `json:"name" gorm:"not null"`
+	UserID  uint     `json:"user_id"`
 	Servers []Server `json:"servers,omitempty" gorm:"foreignKey:GroupID"`
 }
 
@@ -26,6 +28,7 @@ type Server struct {
 	Name        string       `json:"name" gorm:"not null"`
 	Host        string       `json:"host" gorm:"not null"`
 	Port        int          `json:"port" gorm:"default:22"`
+	UserID      uint         `json:"user_id"`
 	Username    string       `json:"username" gorm:"not null"`
 	Password    string       `json:"password,omitempty"`
 	PrivateKey  string       `json:"private_key,omitempty"`
@@ -124,4 +127,5 @@ type Script struct {
 	Name        string `json:"name" gorm:"not null"`
 	Description string `json:"description"`
 	Content     string `json:"content" gorm:"type:text;not null"`
+	UserID      uint   `json:"user_id"`
 }

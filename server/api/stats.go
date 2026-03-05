@@ -9,11 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetStats 获取服务器实时状态
-func GetStats(c *gin.Context) {
+// GetServerStats 获取服务器的实时状态
+func GetServerStats(c *gin.Context) {
+	serverID := c.Param("id")
+	userID := c.MustGet("user_id").(uint)
+
 	var server models.Server
-	if err := config.DB.First(&server, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在"})
+	if err := config.DB.Where("user_id = ?", userID).First(&server, serverID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器未找到或无权限"})
 		return
 	}
 
@@ -29,13 +32,14 @@ func GetStats(c *gin.Context) {
 func GetBatchStats(c *gin.Context) {
 	ids := c.QueryArray("id")
 	if len(ids) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "至少需要提供一个服务器 ID"})
+		c.JSON(http.StatusOK, []interface{}{})
 		return
 	}
+	userID := c.MustGet("user_id").(uint)
 
 	var servers []models.Server
-	if err := config.DB.Where("id IN ?", ids).Find(&servers).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询服务器失败"})
+	if err := config.DB.Where("user_id = ? AND id IN ?", userID, ids).Find(&servers).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取服务器失败"})
 		return
 	}
 

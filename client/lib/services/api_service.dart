@@ -27,6 +27,21 @@ class ApiService {
         return handler.next(options);
       },
       onError: (DioException e, handler) {
+        if (e.response != null && e.response!.data != null) {
+          final data = e.response!.data;
+          if (data is Map<String, dynamic>) {
+            final errorMsg = data['error'] ?? '未知错误';
+            final details = data['details'] ?? '';
+            final fullMsg = details.isNotEmpty ? '$errorMsg: $details' : errorMsg;
+            return handler.reject(DioException(
+              requestOptions: e.requestOptions,
+              response: e.response,
+              type: e.type,
+              error: fullMsg,
+              message: fullMsg,
+            ));
+          }
+        }
         return handler.next(e);
       },
     ));

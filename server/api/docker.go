@@ -15,9 +15,10 @@ import (
 // GetDockerContainers 获取容器列表
 func GetDockerContainers(c *gin.Context) {
 	serverID := c.Param("id")
+	userID := c.MustGet("user_id").(uint)
 	var server models.Server
-	if err := config.DB.First(&server, serverID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器未找到"})
+	if err := config.DB.Where("user_id = ?", userID).First(&server, serverID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 
@@ -28,16 +29,20 @@ func GetDockerContainers(c *gin.Context) {
 	}
 	defer client.Close()
 
-	cmd := `docker ps -a --format '{"id":"{{.ID}}","names":"{{.Names}}","image":"{{.Image}}","state":"{{.State}}","status":"{{.Status}}","ports":"{{.Ports}}"}'`
+	// 在执行前注入 PATH 环境变量，解决 Mac 或 Linux 下非交互 shell 找不到 docker 的问题
+	cmd := `PATH="/usr/local/bin:/opt/homebrew/bin:$PATH" docker ps -a --format '{"id":"{{.ID}}","names":"{{.Names}}","image":"{{.Image}}","state":"{{.State}}","status":"{{.Status}}","ports":"{{.Ports}}"}'`
 	out, err := smanager.RunClientCommand(client, cmd)
 	if err != nil {
-		// Possibly docker is not installed
+		if strings.Contains(err.Error(), "status 127") || strings.Contains(out, "command not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "该服务器未安装 Docker 或 docker 命令不在 PATH 中", "details": out})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "无法获取 Docker 状态", "details": err.Error()})
 		return
 	}
 
 	// Parse JSON output
-	var containers []map[string]interface{}
+	containers := make([]map[string]interface{}, 0)
 	for _, line := range strings.Split(out, "\n") {
 		if line == "" {
 			continue
@@ -64,8 +69,9 @@ func ContainerAction(c *gin.Context) {
 	}
 
 	var server models.Server
-	if err := config.DB.First(&server, serverID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器未找到"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).First(&server, serverID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 
@@ -76,10 +82,10 @@ func ContainerAction(c *gin.Context) {
 	}
 	defer client.Close()
 
-	cmd := fmt.Sprintf("docker %s %s", action, containerID)
+	cmd := fmt.Sprintf("PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\" docker %s %s", action, containerID)
 	// For 'rm', we might want to force it
 	if action == "rm" {
-		cmd = fmt.Sprintf("docker rm -f %s", containerID)
+		cmd = fmt.Sprintf("PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\" docker rm -f %s", containerID)
 	}
 
 	out, err := smanager.RunClientCommand(client, cmd)
@@ -97,8 +103,9 @@ func GetContainerLogs(c *gin.Context) {
 	containerID := c.Param("cid")
 
 	var server models.Server
-	if err := config.DB.First(&server, serverID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器未找到"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).First(&server, serverID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 
@@ -109,7 +116,7 @@ func GetContainerLogs(c *gin.Context) {
 	}
 	defer client.Close()
 
-	cmd := fmt.Sprintf("docker logs --tail 200 %s 2>&1", containerID)
+	cmd := fmt.Sprintf("PATH=\"/usr/local/bin:/opt/homebrew/bin:$PATH\" docker logs --tail 200 %s 2>&1", containerID)
 	out, err := smanager.RunClientCommand(client, cmd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "操作执行失败", "output": out, "details": err.Error()})

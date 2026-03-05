@@ -70,6 +70,8 @@ func printRouteTable() {
 		{"POST", "/api/groups", "创建分组"},
 		{"PUT", "/api/groups/:id", "更新分组"},
 		{"DEL", "/api/groups/:id", "删除分组"},
+		{"GET", "/api/admin/users", "所有用户"},
+		{"GET", "/api/admin/users/:uid/servers", "用户服务器"},
 		{"WS", "/ws/servers/:id/terminal", "SSH 终端"},
 		{"GET", "/health", "健康检查"},
 	}
@@ -182,6 +184,9 @@ func main() {
 		c.Next()
 	})
 
+	// 静态资源：给浏览器访问网页版后台。访问 /admin 时自动提供 ./public/ 下面的网页
+	r.Static("/admin", "./public")
+
 	// API 路由组
 	v1 := r.Group("/api")
 	{
@@ -209,7 +214,7 @@ func main() {
 				servers.PUT("/:id", api.UpdateServer)
 				servers.DELETE("/:id", api.DeleteServer)
 				servers.POST("/:id/test", api.TestConnection)
-				servers.GET("/:id/stats", api.GetStats)
+				servers.GET("/:id/stats", api.GetServerStats)
 			}
 
 			// 服务器分组
@@ -232,6 +237,16 @@ func main() {
 			protected.PUT("/scripts/:id", api.UpdateScript)
 			protected.DELETE("/scripts/:id", api.DeleteScript)
 			protected.POST("/servers/:id/scripts/:script_id/run", api.RunScriptOnServer)
+
+			// 管理员专属路由
+			adminGroup := protected.Group("/admin")
+			adminGroup.Use(api.AdminCheckMiddleware())
+			{
+				adminGroup.GET("/users", api.AdminGetUsers)
+				adminGroup.POST("/users", api.AdminCreateUser)
+				adminGroup.DELETE("/users/:uid", api.AdminDeleteUser)
+				adminGroup.GET("/users/:uid/servers", api.AdminGetUserServers)
+			}
 		}
 	}
 

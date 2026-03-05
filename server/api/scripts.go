@@ -10,41 +10,42 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetScripts 获取所有脚本列表
+// GetScripts 获取快捷脚本列表
 func GetScripts(c *gin.Context) {
 	var scripts []models.Script
-	if err := config.DB.Find(&scripts).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取脚本失败"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).Find(&scripts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取脚本列表失败"})
 		return
 	}
 	c.JSON(http.StatusOK, scripts)
 }
 
-// CreateScript 创建脚本
+// CreateScript 新增快捷脚本
 func CreateScript(c *gin.Context) {
-	var req models.Script
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误", "details": err.Error()})
+	var script models.Script
+	if err := c.ShouldBindJSON(&script); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
 		return
 	}
-	if req.Name == "" || req.Content == "" {
+	if script.Name == "" || script.Content == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "脚本名称和内容不能为空"})
 		return
 	}
-
-	if err := config.DB.Create(&req).Error; err != nil {
+	script.UserID = c.MustGet("user_id").(uint)
+	if err := config.DB.Create(&script).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败", "details": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, req)
+	c.JSON(http.StatusOK, script)
 }
 
-// UpdateScript 更新脚本
+// UpdateScript 更新快捷脚本
 func UpdateScript(c *gin.Context) {
-	id := c.Param("id")
 	var script models.Script
-	if err := config.DB.First(&script, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到脚本"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).First(&script, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "脚本不存在或无权限"})
 		return
 	}
 
@@ -59,34 +60,37 @@ func UpdateScript(c *gin.Context) {
 		return
 	}
 
-	config.DB.First(&script, id)
+	config.DB.First(&script, c.Param("id"))
 	c.JSON(http.StatusOK, script)
 }
 
 // DeleteScript 删除脚本
 func DeleteScript(c *gin.Context) {
-	id := c.Param("id")
-	if err := config.DB.Delete(&models.Script{}, id).Error; err != nil {
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).Delete(&models.Script{}, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败", "details": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 
-// RunScriptOnServer 在指定服务器上运行此脚本
+// RunScriptOnServer 在指定服务器运行脚本
 func RunScriptOnServer(c *gin.Context) {
-	serverID := c.Param("id")
-	scriptID := c.Param("script_id")
+	serverID := c.Param("serverId")
+	scriptID := c.Param("scriptId")
+	userID := c.MustGet("user_id").(uint)
 
+	// 1. 获取服务器信息
 	var server models.Server
-	if err := config.DB.First(&server, serverID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器未找到"})
+	if err := config.DB.Where("user_id = ?", userID).First(&server, serverID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 
+	// 2. 获取脚本信息
 	var script models.Script
-	if err := config.DB.First(&script, scriptID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "脚本未找到"})
+	if err := config.DB.Where("user_id = ?", userID).First(&script, scriptID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "脚本不存在或无权限"})
 		return
 	}
 

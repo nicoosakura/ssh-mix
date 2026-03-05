@@ -116,13 +116,25 @@ class _ContainersTabState extends State<ContainersTab> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
+      final isNotInstalled = _error!.contains('该服务器未安装 Docker');
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppTheme.danger),
+            Icon(
+              isNotInstalled ? Icons.extension_off : Icons.error_outline,
+              size: 48,
+              color: isNotInstalled ? Colors.white38 : AppTheme.danger,
+            ),
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.white54)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white54),
+              ),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _fetchContainers,

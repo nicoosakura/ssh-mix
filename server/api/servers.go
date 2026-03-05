@@ -18,7 +18,8 @@ func sanitizeServer(s *models.Server) {
 // GetServers 获取服务器列表
 func GetServers(c *gin.Context) {
 	var servers []models.Server
-	query := config.DB.Preload("Group")
+	userID := c.MustGet("user_id").(uint)
+	query := config.DB.Preload("Group").Where("user_id = ?", userID)
 
 	if groupID := c.Query("group_id"); groupID != "" {
 		query = query.Where("group_id = ?", groupID)
@@ -45,8 +46,9 @@ func GetServers(c *gin.Context) {
 // GetServer 获取单个服务器
 func GetServer(c *gin.Context) {
 	var server models.Server
-	if err := config.DB.Preload("Group").First(&server, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Preload("Group").Where("user_id = ?", userID).First(&server, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 	sanitizeServer(&server)
@@ -60,6 +62,7 @@ func CreateServer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
 		return
 	}
+	server.UserID = c.MustGet("user_id").(uint)
 	if server.Port == 0 {
 		server.Port = 22
 	}
@@ -74,8 +77,9 @@ func CreateServer(c *gin.Context) {
 // UpdateServer 更新服务器
 func UpdateServer(c *gin.Context) {
 	var server models.Server
-	if err := config.DB.First(&server, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).First(&server, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 	if err := c.ShouldBindJSON(&server); err != nil {
@@ -89,7 +93,8 @@ func UpdateServer(c *gin.Context) {
 
 // DeleteServer 删除服务器
 func DeleteServer(c *gin.Context) {
-	if err := config.DB.Delete(&models.Server{}, c.Param("id")).Error; err != nil {
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).Delete(&models.Server{}, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败"})
 		return
 	}
@@ -99,8 +104,9 @@ func DeleteServer(c *gin.Context) {
 // TestConnection 测试服务器连接
 func TestConnection(c *gin.Context) {
 	var server models.Server
-	if err := config.DB.First(&server, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).First(&server, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "服务器不存在或无权限"})
 		return
 	}
 
@@ -119,7 +125,8 @@ func TestConnection(c *gin.Context) {
 // GetGroups 获取所有分组
 func GetGroups(c *gin.Context) {
 	var groups []models.ServerGroup
-	config.DB.Preload("Servers").Find(&groups)
+	userID := c.MustGet("user_id").(uint)
+	config.DB.Preload("Servers").Where("user_id = ?", userID).Find(&groups)
 	// 清除分组内服务器的敏感字段
 	for i := range groups {
 		for j := range groups[i].Servers {
@@ -136,6 +143,7 @@ func CreateGroup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误"})
 		return
 	}
+	group.UserID = c.MustGet("user_id").(uint)
 	config.DB.Create(&group)
 	c.JSON(http.StatusCreated, group)
 }
@@ -143,8 +151,9 @@ func CreateGroup(c *gin.Context) {
 // UpdateGroup 更新分组
 func UpdateGroup(c *gin.Context) {
 	var group models.ServerGroup
-	if err := config.DB.First(&group, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "分组不存在"})
+	userID := c.MustGet("user_id").(uint)
+	if err := config.DB.Where("user_id = ?", userID).First(&group, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "分组不存在或无权限"})
 		return
 	}
 	var input struct {
@@ -162,8 +171,9 @@ func UpdateGroup(c *gin.Context) {
 // DeleteGroup 删除分组
 func DeleteGroup(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
+	userID := c.MustGet("user_id").(uint)
 	// 将该分组下的服务器解除绑定
-	config.DB.Model(&models.Server{}).Where("group_id = ?", id).Update("group_id", nil)
-	config.DB.Delete(&models.ServerGroup{}, id)
+	config.DB.Model(&models.Server{}).Where("group_id = ? AND user_id = ?", id, userID).Update("group_id", nil)
+	config.DB.Where("user_id = ?", userID).Delete(&models.ServerGroup{}, id)
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }

@@ -257,6 +257,18 @@ class _StatsView extends StatelessWidget {
     return '${val.toStringAsFixed(1)} ${units[i]}';
   }
 
+  String _formatBytes(int bytes) {
+    if (bytes <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    int i = 0;
+    double val = bytes.toDouble();
+    while (val >= 1024 && i < units.length - 1) {
+      val /= 1024;
+      i++;
+    }
+    return '${val.toStringAsFixed(1)} ${units[i]}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -264,401 +276,382 @@ class _StatsView extends StatelessWidget {
       color: AppTheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 概览卡片
-            Row(
-              children: [
-                Expanded(
-                    child: _MetricCard(
-                  label: 'CPU',
-                  value: '${stats.cpuUsage.toStringAsFixed(1)}%',
-                  icon: Icons.memory,
-                  color: AppTheme.primary,
-                  percent: stats.cpuUsage / 100,
-                )),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _MetricCard(
-                  label: '内存',
-                  value: '${stats.memUsage.toStringAsFixed(1)}%',
-                  icon: Icons.storage,
-                  color: AppTheme.accent,
-                  percent: stats.memUsage / 100,
-                  sub:
-                      '${stats.memUsedFormatted} / ${stats.memTotalFormatted}',
-                )),
-              ],
+            // ── 负载 / Unknown 板块 ──
+            _SectionCard(
+              color: Colors.grey,
+              icon: Icons.device_hub,
+              title: '系统负载',
+              initiallyExpanded: true,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _LoadItem(label: '1 分钟', value: stats.load1.toStringAsFixed(2)),
+                      _LoadItem(label: '5 分钟', value: stats.load5.toStringAsFixed(2)),
+                      _LoadItem(label: '15 分钟', value: stats.load15.toStringAsFixed(2)),
+                      _LoadItem(label: '开机时长', value: stats.uptime.isEmpty ? '未知' : stats.uptime),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                    child: _MetricCard(
-                  label: '磁盘',
-                  value: '${stats.diskUsage.toStringAsFixed(1)}%',
-                  icon: Icons.disc_full_rounded,
-                  color: AppTheme.warning,
-                  percent: stats.diskUsage / 100,
-                  sub:
-                      '${stats.diskUsedFormatted} / ${stats.diskTotalFormatted}',
-                )),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _InfoCard(
-                  label: '运行时间',
-                  value: stats.uptime,
-                  icon: Icons.timer_outlined,
-                  color: AppTheme.success,
-                )),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // CPU 详细信息折叠面板
-            if (stats.cpuUser > 0 || stats.cpuSys > 0)
-              _buildExpansionCard(
-                title: 'CPU 详细拆分',
-                icon: Icons.memory,
+            const SizedBox(height: 10),
+
+            // ── CPU 板块 ──
+            _SectionCard(
+              color: AppTheme.primary,
+              icon: Icons.memory,
+              title: 'CPU',
+              trailingWidget: _CirclePercent(
+                percent: stats.cpuUsage / 100,
                 color: AppTheme.primary,
+                label: '${stats.cpuUsage.toStringAsFixed(0)}%',
+              ),
+              initiallyExpanded: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow('用户使用率 (us)', '${stats.cpuUser.toStringAsFixed(1)}%'),
-                  _buildDetailRow('系统使用率 (sy)', '${stats.cpuSys.toStringAsFixed(1)}%'),
-                  _buildDetailRow('I/O 等待 (wa)', '${stats.cpuIowait.toStringAsFixed(1)}%'),
-                  _buildDetailRow('软中断 (si)', '${stats.cpuSoftirq.toStringAsFixed(1)}%'),
-                  _buildDetailRow('硬中断 (hi)', '${stats.cpuIrq.toStringAsFixed(1)}%'),
-                  _buildDetailRow('虚拟化 (st)', '${stats.cpuSteal.toStringAsFixed(1)}%'),
+                  // CPU 分项 2列 grid
+                  _buildTwoColGrid([
+                    _StatCell(dot: Colors.red, label: '系统', value: '${stats.cpuSys.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.orange, label: '用户', value: '${stats.cpuUser.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.green, label: 'I/O 等待', value: '${stats.cpuIowait.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.teal, label: 'nice', value: '${stats.cpuNice.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.purple, label: '硬中断', value: '${stats.cpuIrq.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.blue, label: '软中断', value: '${stats.cpuSoftirq.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.amber, label: '抢占', value: '${stats.cpuSteal.toStringAsFixed(1)} %'),
+                    _StatCell(dot: Colors.grey, label: 'idle', value: '${(100 - stats.cpuUsage).clamp(0, 100).toStringAsFixed(1)} %'),
+                  ]),
+                  if (cpuHistory.length > 1) ...[
+                    const SizedBox(height: 12),
+                    _MiniChart(data: cpuHistory, color: AppTheme.primary, maxY: 100),
+                  ],
                 ],
               ),
-            const SizedBox(height: 12),
-            // 网络 I/O 卡片
-            Row(
-              children: [
-                Expanded(
-                  child: _InfoCard(
-                    label: '下载速率',
-                    value: _formatBytesRate(stats.netRxRate),
-                    icon: Icons.arrow_downward_rounded,
-                    color: const Color(0xFF42A5F5),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _InfoCard(
-                    label: '上传速率',
-                    value: _formatBytesRate(stats.netTxRate),
-                    icon: Icons.arrow_upward_rounded,
-                    color: const Color(0xFFAB47BC),
-                  ),
-                ),
-              ],
             ),
-            const SizedBox(height: 12),
-            // 网络协议栈详细信息
-            if (stats.tcpEstab > 0 || stats.udpNoPorts > 0)
-              _buildExpansionCard(
-                title: '网络协议栈统计',
-                icon: Icons.network_check,
-                color: const Color(0xFF42A5F5),
+            const SizedBox(height: 10),
+
+            // ── 内存板块 ──
+            _SectionCard(
+              color: AppTheme.accent,
+              icon: Icons.developer_board,
+              title: '内存',
+              trailingWidget: _CirclePercent(
+                percent: stats.memUsage / 100,
+                color: AppTheme.accent,
+                label: '${stats.memUsage.toStringAsFixed(0)}%',
+              ),
+              initiallyExpanded: false,
+              child: _buildTwoColGrid([
+                _StatCell(dot: Colors.red, label: '已用', value: _formatBytes(stats.memTotal - stats.memFree - stats.memCached)),
+                _StatCell(dot: Colors.orange, label: '缓冲/缓存', value: _formatBytes(stats.memCached)),
+                _StatCell(dot: Colors.green, label: '空闲', value: _formatBytes(stats.memFree)),
+                _StatCell(dot: Colors.grey, label: '总计', value: _formatBytes(stats.memTotal)),
+              ]),
+            ),
+            const SizedBox(height: 10),
+
+            // ── 磁盘板块 ──
+            _SectionCard(
+              color: AppTheme.warning,
+              icon: Icons.storage,
+              title: '磁盘',
+              initiallyExpanded: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8, bottom: 4),
-                    child: Text('TCP 连接', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                  ),
-                  _buildDetailRow('已建立连接 (ESTAB)', '${stats.tcpEstab}'),
-                  _buildDetailRow('重传率', '${stats.tcpRetransPct.toStringAsFixed(2)}%'),
-                  _buildDetailRow('尝试失败', '${stats.tcpFails}'),
-                  _buildDetailRow('连接重置', '${stats.tcpResets}'),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12, bottom: 4),
-                    child: Text('UDP 通信', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                  ),
-                  _buildDetailRow('无端口', '${stats.udpNoPorts}'),
-                  _buildDetailRow('接收错误', '${stats.udpInErrors}'),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12, bottom: 4),
-                    child: Text('IP / ICMP', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                  ),
-                  _buildDetailRow('ICMP 错误', '${stats.icmpErrors}'),
-                  _buildDetailRow('无路由', '${stats.ipNoRoute}'),
-                  _buildDetailRow('转发报文', '${stats.ipForward}'),
+                  _buildTwoColGrid([
+                    _StatCell(dot: Colors.orange, label: '已用', value: stats.diskUsedFormatted),
+                    _StatCell(dot: Colors.green, label: '可用', value: stats.diskFreeFormatted),
+                    _StatCell(dot: Colors.grey, label: '总计', value: stats.diskTotalFormatted),
+                    _StatCell(dot: Colors.red, label: '使用率', value: '${stats.diskUsage.toStringAsFixed(1)}%'),
+                  ]),
+                  if (stats.diskPartitions.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Divider(color: AppTheme.border, height: 1),
+                    const SizedBox(height: 8),
+                    ...stats.diskPartitions.map((p) => _DiskPartitionRow(partition: p)),
+                  ],
                 ],
               ),
-            const SizedBox(height: 20),
-            // CPU 历史图表
-            if (cpuHistory.length > 1) ...[
-              _ChartCard(
-                  title: 'CPU 使用率趋势',
-                  data: cpuHistory,
-                  color: AppTheme.primary),
-              const SizedBox(height: 12),
-              _ChartCard(
-                  title: '内存使用率趋势',
-                  data: memHistory,
-                  color: AppTheme.accent),
-              const SizedBox(height: 12),
-              // 网络趋势图 (双线)
-              _DualChartCard(
-                title: '网络 I/O 趋势',
-                data1: netRxHistory,
-                data2: netTxHistory,
-                color1: const Color(0xFF42A5F5),
-                color2: const Color(0xFFAB47BC),
-                label1: '↓ 下载',
-                label2: '↑ 上传',
+            ),
+            const SizedBox(height: 10),
+
+            // ── 网卡板块 ──
+            _SectionCard(
+              color: const Color(0xFF42A5F5),
+              icon: Icons.wifi,
+              title: '网卡',
+              initiallyExpanded: false,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _StatCell(dot: Colors.blue, label: '↓ 下载', value: _formatBytesRate(stats.netRxRate))),
+                      Expanded(child: _StatCell(dot: Colors.purple, label: '↑ 上传', value: _formatBytesRate(stats.netTxRate))),
+                    ],
+                  ),
+                  if (netRxHistory.length > 1) ...[
+                    const SizedBox(height: 12),
+                    _DualMiniChart(
+                      data1: netRxHistory,
+                      data2: netTxHistory,
+                      color1: const Color(0xFF42A5F5),
+                      color2: const Color(0xFFAB47BC),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
+            const SizedBox(height: 10),
+
+            // ── 网络协议统计 ──
+            _SectionCard(
+              color: const Color(0xFF26C6DA),
+              icon: Icons.network_check,
+              title: '网络协议',
+              initiallyExpanded: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ProtocolBlock(
+                    tag: 'TCP',
+                    tagColor: Colors.blue,
+                    items: [
+                      _StatCell(label: 'retrans %', value: stats.tcpRetransPct.toStringAsFixed(4)),
+                      _StatCell(label: 'estab / resets', value: '${stats.tcpEstab} / ${stats.tcpResets}'),
+                      _StatCell(label: '↓ segs', value: '${stats.tcpInSegs}'),
+                      _StatCell(label: 'fails', value: '${stats.tcpFails}'),
+                      _StatCell(label: '↑ segs', value: '${stats.tcpOutSegs}'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ProtocolBlock(
+                    tag: 'UDP',
+                    tagColor: Colors.orange,
+                    items: [
+                      _StatCell(label: 'no ports', value: '${stats.udpNoPorts}'),
+                      _StatCell(label: '↓ buf errors', value: '${stats.udpInErrors}'),
+                      _StatCell(label: '↓ errors', value: '${stats.udpOutErrors}'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ProtocolBlock(
+                    tag: 'IP',
+                    tagColor: Colors.green,
+                    items: [
+                      _StatCell(label: 'no route', value: '${stats.ipNoRoute}'),
+                      _StatCell(label: 'deliver', value: '${stats.ipDeliver}'),
+                      _StatCell(label: '↓/↑ discard', value: '${stats.ipDiscard}'),
+                      _StatCell(label: 'forward', value: '${stats.ipForward}'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ProtocolBlock(
+                    tag: 'ICMP',
+                    tagColor: Colors.red,
+                    items: [
+                      _StatCell(label: 'errors', value: '${stats.icmpErrors}'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // ── 进程列表 ──
+            if (stats.processes.isNotEmpty)
+              _SectionCard(
+                color: Colors.purple,
+                icon: Icons.list_alt,
+                title: '进程列表 (Top ${stats.processes.length})',
+                initiallyExpanded: false,
+                child: Column(
+                  children: [
+                    // 表头
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 50, child: Text('PID', style: _headerStyle)),
+                          SizedBox(width: 60, child: Text('用户', style: _headerStyle)),
+                          SizedBox(width: 50, child: Text('CPU%', style: _headerStyle, textAlign: TextAlign.right)),
+                          SizedBox(width: 50, child: Text('MEM%', style: _headerStyle, textAlign: TextAlign.right)),
+                          Expanded(child: Text('命令', style: _headerStyle)),
+                        ],
+                      ),
+                    ),
+                    const Divider(color: AppTheme.border, height: 1),
+                    ...stats.processes.map((p) => _ProcessRow(process: p)),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildExpansionCard({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required List<Widget> children,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Theme(
-        data: ThemeData(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          collapsedIconColor: AppTheme.textSecondary,
-          iconColor: AppTheme.primary,
-          title: Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 12),
-              Text(title, style: GoogleFonts.inter(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              )),
-            ],
-          ),
-          childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
-        ),
-      ),
-    );
-  }
+  static const _headerStyle = TextStyle(
+    color: AppTheme.textMuted,
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+  );
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildTwoColGrid(List<_StatCell> cells) {
+    final rows = <Widget>[];
+    for (int i = 0; i < cells.length; i += 2) {
+      rows.add(Row(
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-          Text(value, style: GoogleFonts.jetBrainsMono(color: AppTheme.textPrimary, fontSize: 13)),
+          Expanded(child: cells[i]),
+          if (i + 1 < cells.length) Expanded(child: cells[i + 1]),
         ],
-      ),
-    );
+      ));
+      if (i + 2 < cells.length) rows.add(const SizedBox(height: 6));
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final double percent;
-  final String? sub;
+// ─────────────────────────────────────────────
+// 新辅助 Widgets（NeoServer 风格）
+// ─────────────────────────────────────────────
 
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.icon,
+
+/// 统一折叠卡片 – 左侧带色条，标题行，可折叠内容
+class _SectionCard extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String title;
+  final Widget child;
+  final bool initiallyExpanded;
+  final Widget? trailingWidget;
+
+  const _SectionCard({
     required this.color,
-    required this.percent,
-    this.sub,
+    required this.icon,
+    required this.title,
+    required this.child,
+    this.initiallyExpanded = false,
+    this.trailingWidget,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      clipBehavior: Clip.hardEdge,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          collapsedIconColor: AppTheme.textSecondary,
+          iconColor: color,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          title: Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              Text(value,
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
                   style: GoogleFonts.inter(
                     color: AppTheme.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                  )),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              if (trailingWidget != null) ...[
+                trailingWidget!,
+                const SizedBox(width: 4),
+              ],
             ],
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent.clamp(0, 1),
-              backgroundColor: color.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation(color),
-              minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(label,
-              style: const TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 12)),
-          if (sub != null)
-            Text(sub!,
-                style: const TextStyle(
-                    color: AppTheme.textMuted, fontSize: 10)),
-        ],
+          children: [child],
+        ),
       ),
     );
   }
 }
 
-class _InfoCard extends StatelessWidget {
+/// 负载项：标签 + 大数值
+class _LoadItem extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
-  final Color color;
-
-  const _InfoCard(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
+  const _LoadItem({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
+    return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 10),
           Text(
-            value.isEmpty ? '未知' : value,
+            label,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
             style: GoogleFonts.inter(
               color: AppTheme.textPrimary,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
-          Text(label,
-              style: const TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 12)),
         ],
       ),
     );
   }
 }
 
-class _ChartCard extends StatelessWidget {
-  final String title;
-  final List<double> data;
+/// 小圆形百分比指示器（用于 CPU/内存标题右侧）
+class _CirclePercent extends StatelessWidget {
+  final double percent;
   final Color color;
-
-  const _ChartCard(
-      {required this.title, required this.data, required this.color});
+  final String label;
+  const _CirclePercent({required this.percent, required this.color, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final spots = data
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value))
-        .toList();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Text(title,
-              style: GoogleFonts.inter(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              )),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 120,
-            child: LineChart(
-              LineChartData(
-                minY: 0,
-                maxY: 100,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 25,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: AppTheme.border,
-                    strokeWidth: 1,
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 25,
-                      getTitlesWidget: (v, _) => Text(
-                        '${v.toInt()}%',
-                        style: const TextStyle(
-                            color: AppTheme.textMuted, fontSize: 10),
-                      ),
-                      reservedSize: 36,
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots,
-                    isCurved: true,
-                    color: color,
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: color.withValues(alpha: 0.12),
-                    ),
-                  ),
-                ],
-              ),
+          CircularProgressIndicator(
+            value: percent.clamp(0.0, 1.0),
+            strokeWidth: 4,
+            backgroundColor: color.withValues(alpha: 0.15),
+            valueColor: AlwaysStoppedAnimation(color),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -667,52 +660,157 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-// 双线图表（网络 I/O）
-class _DualChartCard extends StatelessWidget {
-  final String title;
+/// 单个数据项：可选彩点 + 标签 + 值
+class _StatCell extends StatelessWidget {
+  final Color? dot;
+  final String label;
+  final String value;
+  const _StatCell({this.dot, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          if (dot != null) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
+                Text(value, style: GoogleFonts.jetBrainsMono(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 嵌入式迷你折线图（单线，用于 CPU 卡片内）
+class _MiniChart extends StatelessWidget {
+  final List<double> data;
+  final Color color;
+  final double maxY;
+  const _MiniChart({required this.data, required this.color, required this.maxY});
+
+  @override
+  Widget build(BuildContext context) {
+    final spots = data.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
+    return SizedBox(
+      height: 80,
+      child: LineChart(LineChartData(
+        minY: 0,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxY / 4,
+          getDrawingHorizontalLine: (_) => FlLine(color: AppTheme.border, strokeWidth: 1),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: const FlTitlesData(
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: color,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(show: true, color: color.withValues(alpha: 0.15)),
+          ),
+        ],
+      )),
+    );
+  }
+}
+
+/// 嵌入式迷你折线图（双线，用于网卡卡片内）
+class _DualMiniChart extends StatelessWidget {
   final List<double> data1;
   final List<double> data2;
   final Color color1;
   final Color color2;
-  final String label1;
-  final String label2;
-
-  const _DualChartCard({
-    required this.title,
-    required this.data1,
-    required this.data2,
-    required this.color1,
-    required this.color2,
-    required this.label1,
-    required this.label2,
-  });
+  const _DualMiniChart({required this.data1, required this.data2, required this.color1, required this.color2});
 
   @override
   Widget build(BuildContext context) {
-    final spots1 = data1
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value / 1024))
-        .toList();
-    final spots2 = data2
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value / 1024))
-        .toList();
+    final spots1 = data1.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value / 1024)).toList();
+    final spots2 = data2.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value / 1024)).toList();
+    final allVals = [...data1.map((v) => v / 1024), ...data2.map((v) => v / 1024)];
+    final maxY = allVals.isEmpty ? 10.0 : (allVals.reduce((a, b) => a > b ? a : b) * 1.3).clamp(1.0, double.infinity);
+    return SizedBox(
+      height: 80,
+      child: LineChart(LineChartData(
+        minY: 0,
+        maxY: maxY,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: maxY / 4,
+          getDrawingHorizontalLine: (_) => FlLine(color: AppTheme.border, strokeWidth: 1),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: const FlTitlesData(
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots1,
+            isCurved: true,
+            color: color1,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(show: true, color: color1.withValues(alpha: 0.1)),
+          ),
+          LineChartBarData(
+            spots: spots2,
+            isCurved: true,
+            color: color2,
+            barWidth: 2,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: false),
+            belowBarData: BarAreaData(show: true, color: color2.withValues(alpha: 0.1)),
+          ),
+        ],
+      )),
+    );
+  }
+}
 
-    // 动态计算最大值
-    final allValues = [
-      ...data1.map((v) => v / 1024),
-      ...data2.map((v) => v / 1024)
-    ];
-    final maxY =
-        allValues.isEmpty ? 100.0 : (allValues.reduce((a, b) => a > b ? a : b) * 1.2).clamp(1.0, double.infinity);
+/// 网络协议分组块：带 tag 标签 + 2列数据
+class _ProtocolBlock extends StatelessWidget {
+  final String tag;
+  final Color tagColor;
+  final List<_StatCell> items;
+  const _ProtocolBlock({required this.tag, required this.tagColor, required this.items});
 
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(16),
+        color: AppTheme.bgDark,
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppTheme.border),
       ),
       child: Column(
@@ -720,83 +818,93 @@ class _DualChartCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(title,
-                  style: GoogleFonts.inter(
-                    color: AppTheme.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  )),
-              const Spacer(),
-              _LegendDot(color: color1, label: label1),
-              const SizedBox(width: 12),
-              _LegendDot(color: color2, label: label2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: tagColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(tag, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 120,
-            child: LineChart(
-              LineChartData(
-                minY: 0,
-                maxY: maxY,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: maxY / 4,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: AppTheme.border,
-                    strokeWidth: 1,
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: maxY / 4,
-                      getTitlesWidget: (v, _) => Text(
-                        '${v.toInt()} KB',
-                        style: const TextStyle(
-                            color: AppTheme.textMuted, fontSize: 9),
-                      ),
-                      reservedSize: 40,
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                ),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots1,
-                    isCurved: true,
-                    color: color1,
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: color1.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: spots2,
-                    isCurved: true,
-                    color: color2,
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: color2.withValues(alpha: 0.1),
-                    ),
-                  ),
+          const SizedBox(height: 8),
+          // 2列 grid
+          ...() {
+            final rows = <Widget>[];
+            for (int i = 0; i < items.length; i += 2) {
+              rows.add(Row(
+                children: [
+                  Expanded(child: items[i]),
+                  if (i + 1 < items.length) Expanded(child: items[i + 1]),
                 ],
+              ));
+              if (i + 2 < items.length) rows.add(const SizedBox(height: 4));
+            }
+            return rows;
+          }(),
+        ],
+      ),
+    );
+  }
+}
+
+/// 磁盘分区行
+class _DiskPartitionRow extends StatelessWidget {
+  final DiskPartition partition;
+  const _DiskPartitionRow({required this.partition});
+
+  String _fmt(int b) {
+    if (b <= 0) return '0 B';
+    const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+    int i = 0;
+    double v = b.toDouble();
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return '${v.toStringAsFixed(1)} ${u[i]}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  partition.mountedOn,
+                  style: GoogleFonts.jetBrainsMono(color: AppTheme.textPrimary, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              Text(
+                '${partition.usePercent.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  color: partition.usePercent > 90 ? AppTheme.danger : AppTheme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: (partition.usePercent / 100).clamp(0, 1),
+              backgroundColor: AppTheme.warning.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation(
+                partition.usePercent > 90 ? AppTheme.danger : AppTheme.warning,
+              ),
+              minHeight: 4,
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${_fmt(partition.used)} / ${_fmt(partition.size)}  ·  ${partition.filesystem}',
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 10),
           ),
         ],
       ),
@@ -804,29 +912,47 @@ class _DualChartCard extends StatelessWidget {
   }
 }
 
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
+/// 进程行
+class _ProcessRow extends StatelessWidget {
+  final ServerProcess process;
+  const _ProcessRow({required this.process});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 50,
+            child: Text('${process.pid}', style: GoogleFonts.jetBrainsMono(color: AppTheme.textSecondary, fontSize: 11)),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(label,
-            style: const TextStyle(
-                color: AppTheme.textMuted, fontSize: 11)),
-      ],
+          SizedBox(
+            width: 60,
+            child: Text(process.user, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11), overflow: TextOverflow.ellipsis),
+          ),
+          SizedBox(
+            width: 50,
+            child: Text('${process.cpu.toStringAsFixed(1)}', style: TextStyle(
+              color: process.cpu > 50 ? AppTheme.danger : AppTheme.textPrimary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ), textAlign: TextAlign.right),
+          ),
+          SizedBox(
+            width: 50,
+            child: Text('${process.mem.toStringAsFixed(1)}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 11), textAlign: TextAlign.right),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              process.command,
+              style: GoogleFonts.jetBrainsMono(color: AppTheme.textPrimary, fontSize: 11),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

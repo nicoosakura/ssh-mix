@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Server Manager - Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-color: #0d1117;
+      --card-bg: rgba(22, 27, 34, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #58a6ff;
+      --primary-hover: #79c0ff;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --success: #238636;
+      --danger: #cf222e;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 50%, rgba(88, 166, 255, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(35, 134, 54, 0.08), transparent 25%);
+    }
+
+    /* 玻璃态通用类 */
+    .glass-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(13, 17, 23, 0.8);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #58a6ff, #8957e5);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .logout-btn:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    main {
+      flex: 1;
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+      color: white;
+    }
+
+    /* 登录视图 */
+    #login-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      position: fixed;
+      inset: 0;
+      background: var(--bg-color);
+      z-index: 200;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .login-box h2 {
+      margin-bottom: 30px;
+      color: white;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .input-group input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: #0d1117;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 10px;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
+    }
+
+    /* 用户列表视图 */
+    #dashboard-view {
+      display: none;
+    }
+
+    .user-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .user-card {
+      padding: 24px;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .user-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(88, 166, 255, 0.4);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .user-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary);
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .user-card:hover::before {
+      opacity: 1;
+    }
+
+    .user-card.admin-role::before {
+      background: #8957e5;
+    }
+
+    .user-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .user-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .role-badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .role-badge.admin {
+      background: rgba(137, 87, 229, 0.2);
+      color: #d2a8ff;
+      border: 1px solid rgba(137, 87, 229, 0.3);
+    }
+
+    .user-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 弹窗视图 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      width: 100%;
+      max-width: 800px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      color: white;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: white;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .server-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .server-item {
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .server-info h4 {
+      color: white;
+      margin-bottom: 4px;
+    }
+
+    .server-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .server-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-online .status-dot {
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-offline .status-dot {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .loading-spinner {
+      margin: 40px auto;
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(88, 166, 255, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--card-border);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1000;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Login Section -->
+  <div id="login-view">
+    <div class="glass-panel login-box">
+      <div class="brand" style="justify-content: center; margin-bottom: 24px;">
+        <div class="brand-icon">S</div>
+        Server Manager Admin
+      </div>
+      <h2>登录后台</h2>
+      <form id="loginForm">
+        <div class="input-group">
+          <label>用户名</label>
+          <input type="text" id="username" required autocomplete="username">
+        </div>
+        <div class="input-group">
+          <label>密码</label>
+          <input type="password" id="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-primary">进入控制面板</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Section -->
+  <div id="dashboard-view">
+    <header>
+      <div class="brand">
+        <div class="brand-icon">S</div>
+        Server Manager Admin
+      </div>
+      <button class="logout-btn" onclick="logout()">退出登录</button>
+    </header>
+    <main>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h1 class="page-title" style="margin-bottom: 0;">系统用户总览</h1>
+        <button class="btn-primary" style="width: auto; margin-top: 0; padding: 10px 20px;"
+          onclick="openAddUserModal()">+ 新增用户</button>
+      </div>
+      <div id="userGrid" class="user-grid">
+        <div class="loading-spinner"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Servers Modal -->
+  <div id="serversModal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="glass-panel modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">服务器资产 - <span id="modalUserName"></span></div>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="serverList" class="server-list">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addUserModal" class="modal-overlay" onclick="closeAddUserModal(event)">
+    <div class="glass-panel modal-content" style="max-width: 400px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">新增系统用户</div>
+        <button class="close-btn" onclick="closeAddUserModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addUserForm">
+          <div class="input-group">
+            <label>用户名</label>
+            <input type="text" id="new_username" required autocomplete="off">
+          </div>
+          <div class="input-group">
+            <label>初始密码</label>
+            <input type="password" id="new_password" required minlength="6">
+          </div>
+          <div class="input-group">
+            <label>角色权限</label>
+            <select id="new_role"
+              style="width: 100%; padding: 12px 16px; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 8px; color: white; font-size: 1rem; outline: none; transition: var(--transition);">
+              <option value="user" style="color: black;">普通用户 (User)</option>
+              <option value="admin" style="color: black;">管理员 (Admin)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary" style="margin-top: 10px;">确认创建</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const API_BASE = '/api';
+    let token = localStorage.getItem('admin_token') || '';
+
+    // Initialize
+    if (token) {
+      showDashboard();
+    } else {
+      document.getElementById('login-view').style.display = 'flex';
+      document.getElementById('dashboard-view').style.display = 'none';
+    }
+
+    // UI Helpers
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.style.borderColor = isError ? 'var(--danger)' : 'var(--card-border)';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '未知时间';
+      const d = new Date(dateString);
+      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // Auth
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '登录失败');
+
+        token = data.token;
+        localStorage.setItem('admin_token', token);
+        showToast('登录成功');
+        showDashboard();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
+    function logout() {
+      token = '';
+      localStorage.removeItem('admin_token');
+      document.getElementById('login-view').style.display = 'flex';
+      document.getElementById('dashboard-view').style.display = 'none';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+
+    // Dashboard Data Fetching
+    async function showDashboard() {
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('dashboard-view').style.display = 'block';
+      loadUsers();
+    }
+
+    async function fetchWithAuth(url) {
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        throw new Error('权限不足或登录已过期');
+      }
+      return res;
+    }
+
+    async function loadUsers() {
+      const grid = document.getElementById('userGrid');
+      grid.innerHTML = '<div class="loading-spinner"></div>';
+
+      try {
+        const res = await fetchWithAuth(`${API_BASE}/admin/users`);
+        const users = await res.json();
+
+        if (!res.ok) throw new Error(users.error || '无法获取用户');
+
+        if (users.length === 0) {
+          grid.innerHTML = '<div class="empty-state">暂无系统用户</div>';
+          return;
+        }
+
+        grid.innerHTML = users.map(user => `
+          <div class="glass-panel user-card ${user.role === 'admin' ? 'admin-role' : ''}" onclick="openUserServers(${user.ID}, '${user.username}')">
+            <div class="user-header">
+              <div class="user-name">@${user.username}</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div class="role-badge ${user.role === 'admin' ? 'admin' : ''}">${user.role}</div>
+                <button class="close-btn" style="font-size: 1.2rem; line-height: 0.5; padding: 0;" onclick="deleteUser(event, ${user.ID}, '${user.username}')" title="删除该用户">&times;</button>
+              </div>
+            </div>
+            <div class="user-meta">
+              <div><strong style="color:var(--text-main)">UID:</strong> ${user.ID}</div>
+              <div><strong style="color:var(--text-main)">注册于:</strong> ${formatDate(user.CreatedAt)}</div>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state" style="color:var(--danger)">${err.message}</div>`;
+        if (err.message.includes('过期')) showToast(err.message, true);
+      }
+    }
+
+    // Modal Interaction
+    function closeModal(e) {
+      if (e && e.target !== e.currentTarget) return; // Prevent closing if clicking inside modal content
+      document.getElementById('serversModal').classList.remove('active');
+    }
+
+    function openAddUserModal() {
+      document.getElementById('addUserForm').reset();
+      document.getElementById('addUserModal').classList.add('active');
+    }
+
+    function closeAddUserModal(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('addUserModal').classList.remove('active');
+    }
+
+    document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('new_username').value;
+      const p = document.getElementById('new_password').value;
+      const r = document.getElementById('new_role').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ username: u, password: p, role: r })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '创建失败');
+
+        showToast('用户创建成功');
+        closeAddUserModal();
+        loadUsers();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
+    async function deleteUser(e, uid, username) {
+      e.stopPropagation();
+      if (!confirm(`警告：确定要永久删除用户 @${username} 吗？\n与该用户关联的服务器及设置可能不会立即清理。`)) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/admin/users/${uid}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '删除失败');
+
+        showToast('用户 @' + username + ' 已删除');
+        loadUsers();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function openUserServers(uid, username) {
+      document.getElementById('modalUserName').innerText = username;
+      const modal = document.getElementById('serversModal');
+      const list = document.getElementById('serverList');
+
+      list.innerHTML = '<div class="loading-spinner"></div>';
+      modal.classList.add('active');
+
+      try {
+        const res = await fetchWithAuth(`${API_BASE}/admin/users/${uid}/servers`);
+        const servers = await res.json();
+
+        if (!res.ok) throw new Error(servers.error || '获取失败');
+
+        if (!servers || servers.length === 0) {
+          list.innerHTML = '<div class="empty-state">该用户尚未添加任何服务器</div>';
+          return;
+        }
+
+        list.innerHTML = servers.map(s => {
+          const statusClass = s.status === 'online' ? 'status-online' : (s.status === 'offline' ? 'status-offline' : '');
+          const statusText = s.status === 'online' ? '在线' : (s.status === 'offline' ? '离线' : '未知');
+
+          return `
+            <div class="server-item">
+              <div class="server-info">
+                <h4>${s.name}</h4>
+                <div class="server-meta">${s.username}@${s.host}:${s.port}</div>
+                ${s.group ? `<div class="server-meta" style="margin-top:4px">📍 ${s.group.name}</div>` : ''}
+              </div>
+              <div class="server-status ${statusClass}">
+                <div class="status-dot"></div>
+                ${statusText}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state" style="color:var(--danger)">${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+
+</html>

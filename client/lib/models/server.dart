@@ -236,6 +236,7 @@ class ServerStats {
   String get memTotalFormatted => _formatBytes(memTotal);
   String get diskUsedFormatted => _formatBytes(diskTotal - diskFree);
   String get diskTotalFormatted => _formatBytes(diskTotal);
+  String get diskFreeFormatted => _formatBytes(diskFree);
 
   String _formatBytes(int bytes) {
     if (bytes <= 0) return '0 B';

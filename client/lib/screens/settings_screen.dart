@@ -205,6 +205,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
             ),
             const SizedBox(height: 20),
+            _sectionTitle('终端显示'),
+            const SizedBox(height: 12),
+            _card(
+              child: Consumer<SettingsProvider>(
+                builder: (context, settings, _) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('字体大小', style: TextStyle(color: AppTheme.textPrimary)),
+                          Text('${settings.terminalFontSize.toInt()} px', style: const TextStyle(color: AppTheme.textSecondary)),
+                        ],
+                      ),
+                      Slider(
+                        value: settings.terminalFontSize,
+                        min: 8,
+                        max: 32,
+                        divisions: 24,
+                        activeColor: AppTheme.primary,
+                        inactiveColor: AppTheme.bgDark,
+                        onChanged: (val) {
+                          settings.setTerminalFontSize(val);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
             _sectionTitle('关于'),
             const SizedBox(height: 12),
             _card(
