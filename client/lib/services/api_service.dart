@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:encrypt/encrypt.dart';
+import 'package:pointycastle/asymmetric/api.dart';
+import 'package:pointycastle/pointycastle.dart' as pc;
 
 class ApiService {
   static String _baseUrl = 'http://localhost:8080/api';
@@ -47,6 +50,21 @@ class ApiService {
     ));
   }
 
+  /// 内部获取公钥
+  Future<String> _getPublicKey() async {
+    final res = await _dio.get('/auth/public-key');
+    return res.data['public_key'] as String;
+  }
+
+  /// RSA 加密 (PKCS1 v1.5)
+  String _encryptPassword(String password, String publicKeyPem) {
+    final parser = RSAKeyParser();
+    final RSAPublicKey publicKey = parser.parse(publicKeyPem) as RSAPublicKey;
+    
+    final encrypter = Encrypter(RSA(publicKey: publicKey, encoding: RSAEncoding.PKCS1));
+    return encrypter.encrypt(password).base64;
+  }
+
   /// 更新 API 基础地址
   Future<void> updateBaseUrl(String url) async {
     _baseUrl = '$url/api';
@@ -70,9 +88,15 @@ class ApiService {
 
   // ── 认证 ──────────────────────────────────────────
   Future<Map<String, dynamic>> login(String username, String password) async {
+    // 1. 获取公钥
+    final pubKey = await _getPublicKey();
+    // 2. 加密密码
+    final encryptedPassword = _encryptPassword(password, pubKey);
+
+    // 3. 发送登录请求
     final res = await _dio.post('/auth/login', data: {
       'username': username,
-      'password': password,
+      'password': encryptedPassword,
     });
     final token = res.data['token'] as String;
     final prefs = await SharedPreferences.getInstance();

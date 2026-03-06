@@ -1,7 +1,14 @@
 package api
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
+	"log"
 	"net/http"
+	"os"
 	"server-manager/config"
 	"server-manager/middleware"
 	"server-manager/models"
@@ -9,6 +16,83 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var (
+	privateKey   *rsa.PrivateKey
+	publicKey    *rsa.PublicKey
+	publicKeyPEM string
+)
+
+func InitRSAKeys() {
+	keyPath := "data/private_key.pem"
+
+	// 确保目录存在
+	os.MkdirAll("data", 0755)
+
+	// 尝试从文件加载
+	if data, err := os.ReadFile(keyPath); err == nil {
+		block, _ := pem.Decode(data)
+		if block != nil && block.Type == "RSA PRIVATE KEY" {
+			if key, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
+				privateKey = key
+				publicKey = &privateKey.PublicKey
+				generatePublicKeyPEM()
+				log.Println("RSA: Loaded existing private key from", keyPath)
+				return
+			}
+		}
+	}
+
+	// 生成新密钥
+	var err error
+	privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatal("Failed to generate RSA keys:", err)
+	}
+	publicKey = &privateKey.PublicKey
+
+	// 保存私钥
+	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privBlock := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: privBytes,
+	}
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(privBlock), 0600); err != nil {
+		log.Printf("Warning: Failed to persist RSA key: %v", err)
+	}
+
+	generatePublicKeyPEM()
+	log.Println("RSA: Generated and saved new 2048-bit key pair")
+}
+
+func generatePublicKeyPEM() {
+	pubASN1, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		log.Fatal("Failed to marshal public key:", err)
+	}
+
+	pubBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubASN1,
+	})
+	publicKeyPEM = string(pubBytes)
+}
+
+func DecryptPassword(encrypted string) (string, error) {
+	decoded, err := base64.StdEncoding.DecodeString(encrypted)
+	if err != nil {
+		return "", err
+	}
+	decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, decoded)
+	if err != nil {
+		return "", err
+	}
+	return string(decrypted), nil
+}
+
+func GetLoginPublicKey(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"public_key": publicKeyPEM})
+}
 
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -34,7 +118,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+	// 解密前端传来的加密密码
+	password, err := DecryptPassword(req.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "解密失败，请刷新页面重试"})
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
 		return
 	}

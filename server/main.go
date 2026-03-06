@@ -70,8 +70,11 @@ func printRouteTable() {
 		{"POST", "/api/groups", "创建分组"},
 		{"PUT", "/api/groups/:id", "更新分组"},
 		{"DEL", "/api/groups/:id", "删除分组"},
+		{"GET", "/api/auth/public-key", "获取公钥"},
 		{"GET", "/api/admin/users", "所有用户"},
+		{"PUT", "/api/admin/users/:uid", "更新用户"},
 		{"GET", "/api/admin/users/:uid/servers", "用户服务器"},
+		{"GET", "/api/admin/system/info", "系统信息"},
 		{"WS", "/ws/servers/:id/terminal", "SSH 终端"},
 		{"GET", "/health", "健康检查"},
 	}
@@ -164,7 +167,9 @@ func main() {
 	// 初始化数据库
 	fmt.Printf("  %s⏳ 初始化数据库...%s\n", yellow, reset)
 	config.InitDB()
-	fmt.Printf("  %s✅ 数据库初始化完成%s\n", green, reset)
+	api.InitRSAKeys()            // 初始化登录加密密钥对
+	api.StartBackgroundMonitor() // 启动后台健康检查
+	fmt.Printf("  %s✅ 数据库及监控初始化完成%s\n", green, reset)
 
 	// 使用自定义日志，关闭 Gin 默认日志
 	gin.SetMode(gin.ReleaseMode)
@@ -195,6 +200,7 @@ func main() {
 		{
 			auth.POST("/login", api.Login)
 			auth.POST("/logout", api.Logout)
+			auth.GET("/public-key", api.GetLoginPublicKey)
 		}
 
 		// 需要认证的路由
@@ -244,8 +250,15 @@ func main() {
 			{
 				adminGroup.GET("/users", api.AdminGetUsers)
 				adminGroup.POST("/users", api.AdminCreateUser)
+				adminGroup.PUT("/users/:uid", api.AdminUpdateUser)
 				adminGroup.DELETE("/users/:uid", api.AdminDeleteUser)
 				adminGroup.GET("/users/:uid/servers", api.AdminGetUserServers)
+				adminGroup.GET("/system/info", api.AdminGetSystemInfo)
+				adminGroup.GET("/audit-logs", api.AdminGetAuditLogs)
+				adminGroup.GET("/all-servers", api.AdminGetAllServers)
+				adminGroup.DELETE("/all-servers/:id", api.AdminDeleteServer)
+				adminGroup.GET("/all-scripts", api.AdminGetAllScripts)
+				adminGroup.DELETE("/all-scripts/:id", api.AdminDeleteScript)
 			}
 		}
 	}
