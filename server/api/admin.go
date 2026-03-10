@@ -1,11 +1,15 @@
 package api
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
 	"server-manager/config"
 	"server-manager/models"
+	"server-manager/utils"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +21,14 @@ func AdminCheckMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.MustGet("user_id").(uint)
 		var user models.User
-		if err := config.DB.First(&user, userID).Error; err != nil || user.Role != "admin" {
+		if err := config.DB.First(&user, userID).Error; err != nil {
+			log.Printf("AdminCheck Error: Failed to find user %d: %v", userID, err)
+			c.JSON(http.StatusForbidden, gin.H{"error": "需要管理员权限"})
+			c.Abort()
+			return
+		}
+		if user.Role != "admin" {
+			log.Printf("AdminCheck Forbidden: User %d (%s) role is '%s'", userID, user.Username, user.Role)
 			c.JSON(http.StatusForbidden, gin.H{"error": "需要管理员权限"})
 			c.Abort()
 			return
@@ -322,4 +333,150 @@ func AdminDeleteScript(c *gin.Context) {
 
 	LogActivity(c, "DELETE_SCRIPT_GLOBAL", "全局删除脚本: "+script.Name+" (ID: "+sid+")")
 	c.JSON(http.StatusOK, gin.H{"message": "脚本已从全平台清理"})
+}
+
+// AdminBatchDeleteUsers 批量删除用户
+func AdminBatchDeleteUsers(c *gin.Context) {
+	var req struct {
+		IDs []uint `json:"ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+	if len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "未指定用户 ID"})
+		return
+	}
+	if err := config.DB.Delete(&models.User{}, req.IDs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "批量删除失败"})
+		return
+	}
+	LogActivity(c, "DELETE_USER_BATCH", fmt.Sprintf("批量删除 %d 名用户", len(req.IDs)))
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("已删除 %d 名用户", len(req.IDs))})
+}
+
+// AdminBatchDeleteServers 批量删除服务器
+func AdminBatchDeleteServers(c *gin.Context) {
+	var req struct {
+		IDs []uint `json:"ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		return
+	}
+	if len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "未指定服务器 ID"})
+		return
+	}
+	if err := config.DB.Delete(&models.Server{}, req.IDs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "批量删除失败"})
+		return
+	}
+	LogActivity(c, "DELETE_SERVER_BATCH", fmt.Sprintf("批量删除 %d 台服务器", len(req.IDs)))
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("已删除 %d 台服务器", len(req.IDs))})
+}
+
+// AdminResetPassword 强制重置指定用户密码
+func AdminResetPassword(c *gin.Context) {
+	uid := c.Param("uid")
+	var req struct {
+		Password string `json:"password" binding:"required,min=6"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "密码不能少于 6 位"})
+		return
+	}
+	var user models.User
+	if err := config.DB.First(&user, uid).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		return
+	}
+	config.DB.Model(&user).Update("password", string(hash))
+	LogActivity(c, "RESET_PASSWORD", "强制重置用户密码: @"+user.Username)
+	c.JSON(http.StatusOK, gin.H{"message": "密码已成功重置"})
+}
+
+// AdminExportServers 导出全平台服务器资产
+func AdminExportServers(c *gin.Context) {
+	format := c.DefaultQuery("format", "json")
+
+	var servers []models.Server
+	config.DB.Find(&servers)
+
+	// Build user map
+	var users []models.User
+	config.DB.Find(&users)
+	userMap := make(map[uint]string)
+	for _, u := range users {
+		userMap[u.ID] = u.Username
+	}
+
+	if format == "csv" {
+		c.Header("Content-Type", "text/csv; charset=utf-8")
+		c.Header("Content-Disposition", "attachment; filename=servers_export.csv")
+
+		rows := []string{"ID,名称,主机,端口,用户,状态,描述"}
+		for _, s := range servers {
+			rows = append(rows, fmt.Sprintf("%d,%s,%s,%d,%s,%s,%s",
+				s.ID, s.Name, s.Host, s.Port, userMap[s.UserID], s.Status, s.Description))
+		}
+		c.String(http.StatusOK, strings.Join(rows, "\n"))
+		return
+	}
+
+	// JSON
+	type ExportRow struct {
+		models.Server
+		OwnerName string `json:"owner_name"`
+	}
+	resp := make([]ExportRow, len(servers))
+	for i, s := range servers {
+		resp[i] = ExportRow{Server: s, OwnerName: userMap[s.UserID]}
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// AdminGetBackups 获取最新备份列表
+func AdminGetBackups(c *gin.Context) {
+	backups, err := utils.GetBackups()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "无法读取备份列表: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, backups)
+}
+
+// AdminCreateBackup 手动创建数据库备份
+func AdminCreateBackup(c *gin.Context) {
+	if err := utils.CreateBackup(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建备份失败: " + err.Error()})
+		return
+	}
+	// 顺便清理一下旧备份
+	utils.CleanOldBackups()
+	LogActivity(c, "CREATE_BACKUP", "管理员手动触发了数据库备份")
+	c.JSON(http.StatusOK, gin.H{"message": "备份成功"})
+}
+
+// AdminRestoreBackup 恢复指定备份
+func AdminRestoreBackup(c *gin.Context) {
+	filename := c.Param("filename")
+	if filename == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请提供备份文件名"})
+		return
+	}
+
+	if err := utils.RestoreBackup(filename); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "恢复备份失败: " + err.Error()})
+		return
+	}
+
+	LogActivity(c, "RESTORE_BACKUP", "管理员从备份恢复了数据库: "+filename)
+	c.JSON(http.StatusOK, gin.H{"message": "数据库已从备份恢复"})
 }

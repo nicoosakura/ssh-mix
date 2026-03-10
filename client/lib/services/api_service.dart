@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:encrypt/encrypt.dart';
@@ -127,9 +128,34 @@ class ApiService {
     final params = <String, dynamic>{};
     if (groupId != null) params['group_id'] = groupId;
     if (search != null && search.isNotEmpty) params['search'] = search;
-    final res = await _dio.get('/servers',
-        queryParameters: params.isNotEmpty ? params : null);
-    return res.data as List<dynamic>;
+    try {
+      final res = await _dio.get('/servers',
+          queryParameters: params.isNotEmpty ? params : null);
+      final data = res.data as List<dynamic>;
+      // 成功时写入缓存
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_servers', _encodeList(data));
+      return data;
+    } on DioException catch (_) {
+      // 网络错误时读取缓存
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString('cached_servers');
+      if (cached != null && cached.isNotEmpty) {
+        // 简单 JSON 解析缓存
+        // 使用 dart:convert 解析
+        return _decodeList(cached);
+      }
+      rethrow;
+    }
+  }
+
+  /// 简单 JSON 编码列表（避免额外依赖）
+  String _encodeList(List<dynamic> list) {
+    return jsonEncode(list);
+  }
+
+  List<dynamic> _decodeList(String json) {
+    return jsonDecode(json) as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> getServer(int id) async {

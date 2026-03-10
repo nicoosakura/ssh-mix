@@ -33,6 +33,85 @@ class AppTheme {
     }
   }
 
+  // 亮色主题 (高亮白 + 玻璃质感)
+  static final Color bgLight = const Color(0xFFF7F8FA);
+  static final Color bgCardLight = const Color(0xFFFFFFFF);
+  static final Color borderLight = const Color(0xFFE2E8F0);
+  static final Color textPrimaryLight = const Color(0xFF1E293B);
+  static final Color textSecondaryLight = const Color(0xFF64748B);
+  static final Color textMutedLight = const Color(0xFF94A3B8);
+
+  static ThemeData get lightTheme => ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: bgLight,
+        primaryColor: primary,
+        colorScheme: const ColorScheme.light(
+          primary: primary,
+          secondary: accent,
+          surface: Colors.white,
+          error: danger,
+          onPrimary: Colors.white,
+          onSurface: Color(0xFF1E293B), // textPrimaryLight
+        ),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
+          bodyColor: textPrimaryLight,
+          displayColor: textPrimaryLight,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: bgLight,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: GoogleFonts.inter(
+            color: textPrimaryLight,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+          iconTheme: IconThemeData(color: textSecondaryLight),
+        ),
+        cardTheme: CardTheme(
+          color: bgCardLight,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: borderLight, width: 1),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: bgCardLight,
+          labelStyle: TextStyle(color: textSecondaryLight),
+          hintStyle: TextStyle(color: textMutedLight),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: borderLight),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: borderLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: primary, width: 2),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
+        ),
+        dividerTheme: DividerThemeData(color: borderLight, space: 1),
+      );
+
   static ThemeData get darkTheme => ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: bgDark,

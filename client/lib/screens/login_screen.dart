@@ -68,11 +68,13 @@ class _LoginScreenState extends State<LoginScreen>
         children: [
           // 背景渐变
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment.topLeft,
                 radius: 1.5,
-                colors: [Color(0xFF1A1040), AppTheme.bgDark],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [const Color(0xFF1A1040), AppTheme.bgDark]
+                    : [const Color(0xFFE2E8F0), AppTheme.bgLight],
               ),
             ),
           ),
@@ -136,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen>
                         '登录以管理您的服务器',
                         style: GoogleFonts.inter(
                           fontSize: 14,
-                          color: AppTheme.textSecondary,
+                          color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 36),
@@ -160,18 +162,18 @@ class _LoginScreenState extends State<LoginScreen>
                           TextFormField(
                             controller: _passwordCtrl,
                             obscureText: _obscure,
-                            style: const TextStyle(
-                                color: AppTheme.textPrimary),
+                            style: TextStyle(
+                                color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                             decoration: InputDecoration(
                               labelText: '密码',
-                              prefixIcon: const Icon(Icons.lock_outline,
-                                  color: AppTheme.textSecondary),
+                              prefixIcon: Icon(Icons.lock_outline,
+                                  color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscure
                                       ? Icons.visibility_outlined
                                       : Icons.visibility_off_outlined,
-                                  color: AppTheme.textSecondary,
+                                  color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary,
                                 ),
                                 onPressed: () =>
                                     setState(() => _obscure = !_obscure),
@@ -242,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen>
                           '默认账号: admin / admin123',
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: AppTheme.textMuted,
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted,
                           ),
                         ),
                       ),

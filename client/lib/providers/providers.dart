@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:server_manager/models/server.dart';
 import 'package:server_manager/services/api_service.dart';
+import 'package:server_manager/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ServerProvider extends ChangeNotifier {
@@ -51,8 +52,31 @@ class ServerProvider extends ChangeNotifier {
       for (final item in dataList) {
         final map = item as Map<String, dynamic>;
         final id = map['id'] as int;
-        if (map['error'] != null || map['stats'] == null) {
+        
+        final idx = _servers.indexWhere((s) => s.id == id);
+        if (idx == -1) continue;
+        final server = _servers[idx];
+
+        final hasError = map['error'] != null || map['stats'] == null;
+        if (hasError) {
+          if (server.status == 'online') {
+            _servers[idx] = server.copyWith(status: 'offline');
+            NotificationService().showNotification(
+              id: id,
+              title: '⚠️ 节点离线告警',
+              body: '${server.name} (${server.host}) 已断开连接，请及时检查。',
+            );
+          }
           continue;
+        }
+
+        if (server.status != 'online') {
+          _servers[idx] = server.copyWith(status: 'online');
+          NotificationService().showNotification(
+            id: id,
+            title: '✅ 节点已恢复',
+            body: '${server.name} (${server.host}) 现已在线。',
+          );
         }
         _batchStats[id] = ServerStats.fromJson(map['stats']);
       }
@@ -213,8 +237,10 @@ class AuthProvider extends ChangeNotifier {
 
 class SettingsProvider extends ChangeNotifier {
   double _terminalFontSize = 13.0;
+  bool _isDarkMode = true;
 
   double get terminalFontSize => _terminalFontSize;
+  bool get isDarkMode => _isDarkMode;
 
   SettingsProvider() {
     _loadSettings();
@@ -223,6 +249,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _terminalFontSize = prefs.getDouble('terminalFontSize') ?? 13.0;
+    _isDarkMode = prefs.getBool('isDarkMode') ?? true;
     notifyListeners();
   }
 
@@ -230,6 +257,13 @@ class SettingsProvider extends ChangeNotifier {
     _terminalFontSize = size;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('terminalFontSize', size);
+    notifyListeners();
+  }
+
+  Future<void> toggleTheme(bool isDark) async {
+    _isDarkMode = isDark;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', isDark);
     notifyListeners();
   }
 }

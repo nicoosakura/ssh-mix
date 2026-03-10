@@ -20,11 +20,15 @@ class ServerManagerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ServerProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
-      child: MaterialApp(
-        title: 'Server Manager',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        home: const _AppEntry(),
+      child: Consumer<SettingsProvider>(
+        builder: (context, settings, _) {
+          return MaterialApp(
+            title: 'Server Manager',
+            debugShowCheckedModeBanner: false,
+            theme: settings.isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
+            home: const _AppEntry(),
+          );
+        },
       ),
     );
   }

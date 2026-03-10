@@ -1237,6 +1237,12 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
+
+        // 权限校验：仅限管理员登录网页端
+        if (data.role !== 'admin') {
+          throw new Error('权限不足：仅限管理员登录管理系统');
+        }
+
         token = data.token;
         localStorage.setItem('admin_token', token);
         showDashboard();

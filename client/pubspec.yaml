@@ -52,6 +52,8 @@ dependencies:
   encrypt: ^5.0.3
   # 加载动画
   shimmer: ^3.0.0
+  # 本地通知（状态变更推送）
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:

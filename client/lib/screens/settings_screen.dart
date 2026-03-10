@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final auth = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('设置')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -127,15 +127,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         auth.username,
                         style: GoogleFonts.inter(
-                          color: AppTheme.textPrimary,
+                          color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
                       ),
-                      const Text(
+                      Text(
                         '管理员',
                         style: TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 12),
+                            color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
@@ -149,12 +149,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(children: [
                 TextFormField(
                   controller: _apiUrlCtrl,
-                  style: const TextStyle(color: AppTheme.textPrimary),
+                  style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                   decoration: InputDecoration(
                     labelText: '后端 API 地址',
                     hintText: 'http://localhost:8080',
-                    prefixIcon: const Icon(Icons.link,
-                        color: AppTheme.textSecondary),
+                    prefixIcon: Icon(Icons.link,
+                        color: Theme.of(context).iconTheme.color),
                     isDense: true,
                     suffixIcon: IconButton(
                       icon: _savingUrl
@@ -174,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   '修改后需重新登录生效',
                   style: TextStyle(
-                      color: AppTheme.textMuted, fontSize: 11),
+                      color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted, fontSize: 11),
                 ),
               ]),
             ),
@@ -216,8 +216,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('字体大小', style: TextStyle(color: AppTheme.textPrimary)),
-                          Text('${settings.terminalFontSize.toInt()} px', style: const TextStyle(color: AppTheme.textSecondary)),
+                          Text('深色模式', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary)),
+                          Switch(
+                            value: settings.isDarkMode,
+                            activeColor: AppTheme.primary,
+                            onChanged: (val) => settings.toggleTheme(val),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('字体大小', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary)),
+                          Text('${settings.terminalFontSize.toInt()} px', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary)),
                         ],
                       ),
                       Slider(
@@ -226,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         max: 32,
                         divisions: 24,
                         activeColor: AppTheme.primary,
-                        inactiveColor: AppTheme.bgDark,
+                        inactiveColor: Theme.of(context).dividerTheme.color,
                         onChanged: (val) {
                           settings.setTerminalFontSize(val);
                         },
@@ -243,13 +255,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _infoRow('版本', '1.0.0'),
-                  const Divider(color: AppTheme.border, height: 20),
-                  _infoRow('后端 API', _apiUrlCtrl.text),
-                  const Divider(color: AppTheme.border, height: 20),
-                  _infoRow('技术栈', 'Flutter + Go + SQLite'),
-                  const Divider(color: AppTheme.border, height: 20),
-                  _infoRow('功能', 'SSH 终端 · 实时监控 · 分组管理'),
+                  _infoRow('版本', '1.0.0', context),
+                  Divider(color: Theme.of(context).dividerTheme.color, height: 20),
+                  _infoRow('后端 API', _apiUrlCtrl.text, context),
+                  Divider(color: Theme.of(context).dividerTheme.color, height: 20),
+                  _infoRow('技术栈', 'Flutter + Go + SQLite', context),
+                  Divider(color: Theme.of(context).dividerTheme.color, height: 20),
+                  _infoRow('功能', 'SSH 终端 · 实时监控 · 分组管理', context),
                 ],
               ),
             ),
@@ -276,13 +288,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _card({required Widget child}) => Container(
+      Widget _card({required Widget child}) => Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.bgCard,
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: Theme.of(context).dividerTheme.color!),
         ),
         child: child,
       );
@@ -290,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _sectionTitle(String text) => Text(
         text,
         style: GoogleFonts.inter(
-          color: AppTheme.textSecondary,
+          color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.2,
@@ -301,23 +313,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       TextFormField(
         controller: ctrl,
         obscureText: true,
-        style: const TextStyle(color: AppTheme.textPrimary),
+        style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: const Icon(Icons.lock_outline,
-              color: AppTheme.textSecondary),
+          prefixIcon: Icon(Icons.lock_outline,
+              color: Theme.of(context).iconTheme.color),
           isDense: true,
         ),
       );
 
-  Widget _infoRow(String label, String value) => Row(
+  Widget _infoRow(String label, String value, BuildContext context) => Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(color: AppTheme.textSecondary)),
+              style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary)),
           Flexible(
             child: Text(value,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                 overflow: TextOverflow.ellipsis),
           ),
         ],

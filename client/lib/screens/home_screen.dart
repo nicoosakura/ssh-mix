@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final auth = context.read<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Row(
           children: [
@@ -70,14 +70,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Text(
               'Server Manager',
               style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                  fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.folder_outlined,
-                color: AppTheme.textSecondary),
+            icon: Icon(Icons.folder_outlined,
+                color: Theme.of(context).iconTheme.color),
             tooltip: '分组管理',
             onPressed: () {
               showModalBottomSheet(
@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.textSecondary),
+            icon: Icon(Icons.refresh, color: Theme.of(context).iconTheme.color),
             onPressed: () {
               context.read<ServerProvider>()
                 ..fetchServers()
@@ -97,15 +97,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined,
-                color: AppTheme.textSecondary),
+            icon: Icon(Icons.settings_outlined,
+                color: Theme.of(context).iconTheme.color),
             onPressed: () => Navigator.push(
               context,
               _slideRoute(const SettingsScreen()),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: AppTheme.textSecondary),
+            icon: Icon(Icons.logout, color: Theme.of(context).iconTheme.color),
             onPressed: () => auth.logout(),
           ),
           const SizedBox(width: 8),
@@ -117,22 +117,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: TextField(
-              style: const TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
               decoration: InputDecoration(
                 hintText: '搜索服务器...',
                 prefixIcon:
-                    const Icon(Icons.search, color: AppTheme.textSecondary),
+                    Icon(Icons.search, color: Theme.of(context).iconTheme.color),
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 filled: true,
-                fillColor: AppTheme.bgCard,
+                fillColor: Theme.of(context).cardTheme.color,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.border),
+                  borderSide: BorderSide(color: Theme.of(context).dividerTheme.color!),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.border),
+                  borderSide: BorderSide(color: Theme.of(context).dividerTheme.color!),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           '加载失败\n${provider.error}',
                           textAlign: TextAlign.center,
                           style:
-                              const TextStyle(color: AppTheme.textSecondary),
+                              TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary),
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
@@ -180,7 +180,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     .where((s) =>
                         _search.isEmpty ||
                         s.name.toLowerCase().contains(_search) ||
-                        s.host.toLowerCase().contains(_search))
+                        s.host.toLowerCase().contains(_search) ||
+                        (s.tags != null && s.tags!.toLowerCase().contains(_search)))
                     .toList();
 
                 if (filtered.isEmpty) {
@@ -189,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.computer_outlined,
-                            color: AppTheme.textMuted, size: 64),
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted, size: 64),
                         const SizedBox(height: 16),
                         Text(
                           _search.isEmpty
@@ -197,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               : '未找到匹配的服务器',
                           textAlign: TextAlign.center,
                           style:
-                              const TextStyle(color: AppTheme.textSecondary),
+                              TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -210,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     await provider.fetchGroups();
                   },
                   color: AppTheme.primary,
-                  backgroundColor: AppTheme.bgCard,
+                  backgroundColor: Theme.of(context).cardTheme.color,
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
@@ -337,11 +338,11 @@ class _FilterChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? AppTheme.primary.withValues(alpha: 0.2)
-                : AppTheme.bgCard,
+                : Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color:
-                  selected ? AppTheme.primary : AppTheme.border,
+                  selected ? AppTheme.primary : Theme.of(context).dividerTheme.color!,
             ),
           ),
           child: Row(
@@ -350,7 +351,7 @@ class _FilterChip extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                  color: selected ? AppTheme.primary : (Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary),
                   fontWeight:
                       selected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 13,
@@ -364,7 +365,7 @@ class _FilterChip extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: selected
                         ? AppTheme.primary.withValues(alpha: 0.3)
-                        : AppTheme.border,
+                        : Theme.of(context).dividerTheme.color!,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -372,7 +373,7 @@ class _FilterChip extends StatelessWidget {
                     style: TextStyle(
                       color: selected
                           ? AppTheme.primary
-                          : AppTheme.textMuted,
+                          : (Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted),
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -392,8 +393,8 @@ class _ShimmerList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppTheme.bgCard,
-      highlightColor: AppTheme.bgCardHover,
+      baseColor: Theme.of(context).cardTheme.color ?? AppTheme.bgCard,
+      highlightColor: Theme.of(context).dividerTheme.color ?? AppTheme.bgCardHover,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
@@ -401,7 +402,7 @@ class _ShimmerList extends StatelessWidget {
           height: 80,
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: AppTheme.bgCard,
+            color: Theme.of(context).cardTheme.color ?? AppTheme.bgCard,
             borderRadius: BorderRadius.circular(16),
           ),
         ),
@@ -476,9 +477,9 @@ class _ServerCardState extends State<_ServerCard>
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: AppTheme.bgCard,
+              color: Theme.of(context).cardTheme.color,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(color: Theme.of(context).dividerTheme.color!),
             ),
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -493,15 +494,50 @@ class _ServerCardState extends State<_ServerCard>
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        widget.server.name,
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.server.name,
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (widget.server.tags != null && widget.server.tags!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: widget.server.tags!.split(',').map((t) {
+                                final text = t.trim();
+                                if (text.isEmpty) return const SizedBox.shrink();
+                                // Generate a color based on the tag string hash so it's consistent
+                                final hue = (text.hashCode.abs() % 360).toDouble();
+                                final color = HSLColor.fromAHSL(1.0, hue, 0.6, 0.4).toColor();
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.15),
+                                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    text,
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            )
+                          ]
+                        ],
                       ),
                     ),
                     // 右侧状态与操作
@@ -515,7 +551,7 @@ class _ServerCardState extends State<_ServerCard>
                         const SizedBox(width: 8),
                         Icon(
                           Icons.show_chart,
-                          color: AppTheme.textSecondary,
+                          color: Theme.of(context).iconTheme.color,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
@@ -523,14 +559,14 @@ class _ServerCardState extends State<_ServerCard>
                           stats != null && stats.cpuUsage > 0
                               ? stats.cpuUsage.toStringAsFixed(1)
                               : '0.0',
-                          style: const TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                              color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary, fontSize: 12),
                         ),
                         const SizedBox(width: 8),
                         // 操作菜单
                         PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textSecondary),
-                          color: AppTheme.bgCardHover,
+                          icon: Icon(Icons.more_vert, size: 18, color: Theme.of(context).iconTheme.color),
+                          color: Theme.of(context).cardTheme.color,
                           onSelected: (val) async {
                             if (val == 'edit') {
                               final result = await Navigator.push(
@@ -546,9 +582,9 @@ class _ServerCardState extends State<_ServerCard>
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'edit',
-                              child: Text('编辑', style: TextStyle(color: AppTheme.textPrimary)),
+                              child: Text('编辑', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary)),
                             ),
                             const PopupMenuItem(
                               value: 'delete',
@@ -561,14 +597,14 @@ class _ServerCardState extends State<_ServerCard>
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Divider(height: 1, color: AppTheme.border),
+                Divider(height: 1, color: Theme.of(context).dividerTheme.color),
                 const SizedBox(height: 12),
 
                 // === 下半部：指标环 ===
                 DefaultTextStyle(
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Inter',
-                      color: AppTheme.textPrimary,
+                      color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary,
                       fontSize: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -603,36 +639,36 @@ class _ServerCardState extends State<_ServerCard>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text('网络',
+                          Text('网络',
                               style: TextStyle(
-                                  color: AppTheme.textSecondary,
+                                  color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500)),
                           const SizedBox(height: 8),
                           Text(
                             '↑ ${stats != null ? _formatRate(stats.netTxRate) : '0 B/s'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary),
+                                color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                           ),
                           Text(
                             stats != null ? _formatRateSummary(stats.netTxRate) : '0 B',
-                            style: const TextStyle(
-                                fontSize: 10, color: AppTheme.textMuted),
+                            style: TextStyle(
+                                fontSize: 10, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '↓ ${stats != null ? _formatRate(stats.netRxRate) : '0 B/s'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary),
+                                color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                           ),
                           Text(
                             stats != null ? _formatRateSummary(stats.netRxRate) : '0 B',
-                            style: const TextStyle(
-                                fontSize: 10, color: AppTheme.textMuted),
+                            style: TextStyle(
+                                fontSize: 10, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted),
                           ),
                         ],
                       ),
@@ -640,33 +676,33 @@ class _ServerCardState extends State<_ServerCard>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text('I/O',
+                          Text('I/O',
                               style: TextStyle(
-                                  color: AppTheme.textSecondary,
+                                  color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500)),
                           const SizedBox(height: 8),
                           Text(
                             '↑ 0 B',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary),
+                                color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                           ),
-                          const Text('0',
+                          Text('0',
                               style: TextStyle(
-                                  fontSize: 10, color: AppTheme.textMuted)),
+                                  fontSize: 10, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted)),
                           const SizedBox(height: 4),
                           Text(
                             '↓ 0 B',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary),
+                                color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
                           ),
-                          const Text('0',
+                          Text('0',
                               style: TextStyle(
-                                  fontSize: 10, color: AppTheme.textMuted)),
+                                  fontSize: 10, color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? AppTheme.textMuted)),
                         ],
                       ),
                     ],
@@ -696,11 +732,11 @@ class _ServerCardState extends State<_ServerCard>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppTheme.bgCard,
-        title: const Text('删除服务器',
-            style: TextStyle(color: AppTheme.textPrimary)),
+        backgroundColor: Theme.of(context).cardTheme.color ?? AppTheme.bgCard,
+        title: Text('删除服务器',
+            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? AppTheme.textPrimary)),
         content: Text('确定要删除 "${widget.server.name}" 吗？',
-            style: const TextStyle(color: AppTheme.textSecondary)),
+            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? AppTheme.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

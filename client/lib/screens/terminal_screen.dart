@@ -333,7 +333,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
               ),
               child: _buildSidebar(),
             ),
-          // 右侧终端
+          // 右侧终端区域
           Expanded(
             child: _error != null
                 ? Center(
@@ -357,42 +357,95 @@ class _TerminalScreenState extends State<TerminalScreen> {
                       ],
                     ),
                   )
-                : TerminalView(
-                    _terminal,
-                    controller: _terminalController,
-                    theme: const TerminalTheme(
-                      cursor: Color(0xFF6C63FF),
-                      selection: Color(0x806C63FF),
-                      foreground: Color(0xFFE8E8F0),
-                      background: Colors.black,
-                      black: Color(0xFF000000),
-                      red: Color(0xFFFF5252),
-                      green: Color(0xFF4CAF50),
-                      yellow: Color(0xFFFFB74D),
-                      blue: Color(0xFF1E90FF),
-                      magenta: Color(0xFFE040FB),
-                      cyan: Color(0xFF00D4AA),
-                      white: Color(0xFFE8E8F0),
-                      brightBlack: Color(0xFF555570),
-                      brightRed: Color(0xFFFF6B6B),
-                      brightGreen: Color(0xFF69F0AE),
-                      brightYellow: Color(0xFFFFD54F),
-                      brightBlue: Color(0xFF8D8BFF),
-                      brightMagenta: Color(0xFFEA80FC),
-                      brightCyan: Color(0xFF18FFFF),
-                      brightWhite: Color(0xFFFFFFFF),
-                      searchHitBackground: Color(0x80FFB74D),
-                      searchHitBackgroundCurrent: Color(0x80FFB74D),
-                      searchHitForeground: Color(0xFF000000),
-                    ),
-                    textStyle: TerminalStyle(
-                      fontFamily: 'Courier New',
-                      fontSize: terminalFontSize,
-                    ),
-                    autofocus: true,
+                : Column(
+                    children: [
+                      // 快捷指令栏
+                      Container(
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1E1E1E),
+                          border: Border(bottom: BorderSide(color: Colors.black, width: 2)),
+                        ),
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          children: [
+                            _buildQuickCommand('htop', 'htop\n'),
+                            _buildQuickCommand('ll', 'ls -la\n'),
+                            _buildQuickCommand('docker ps', 'docker ps -a\n'),
+                            _buildQuickCommand('nvidia-smi', 'nvidia-smi\n'),
+                            _buildQuickCommand('clear', 'clear\n'),
+                            _buildQuickCommand('Ctrl+C', '\x03'),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TerminalView(
+                          _terminal,
+                          controller: _terminalController,
+                          theme: const TerminalTheme(
+                            cursor: Color(0xFF6C63FF),
+                            selection: Color(0x806C63FF),
+                            foreground: Color(0xFFE8E8F0),
+                            background: Colors.black,
+                            black: Color(0xFF000000),
+                            red: Color(0xFFFF5252),
+                            green: Color(0xFF4CAF50),
+                            yellow: Color(0xFFFFB74D),
+                            blue: Color(0xFF1E90FF),
+                            magenta: Color(0xFFE040FB),
+                            cyan: Color(0xFF00D4AA),
+                            white: Color(0xFFE8E8F0),
+                            brightBlack: Color(0xFF555570),
+                            brightRed: Color(0xFFFF6B6B),
+                            brightGreen: Color(0xFF69F0AE),
+                            brightYellow: Color(0xFFFFD54F),
+                            brightBlue: Color(0xFF8D8BFF),
+                            brightMagenta: Color(0xFFEA80FC),
+                            brightCyan: Color(0xFF18FFFF),
+                            brightWhite: Color(0xFFFFFFFF),
+                            searchHitBackground: Color(0x80FFB74D),
+                            searchHitBackgroundCurrent: Color(0x80FFB74D),
+                            searchHitForeground: Color(0xFF000000),
+                          ),
+                          textStyle: TerminalStyle(
+                            fontFamily: 'Courier New',
+                            fontSize: terminalFontSize,
+                          ),
+                          autofocus: true,
+                        ),
+                      ),
+                    ],
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+
+  Widget _buildQuickCommand(String label, String command) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: GestureDetector(
+        onTap: () {
+          if (_channel != null && _connected && !_isDisposed) {
+            _channel!.sink.add(jsonEncode({'type': 'input', 'data': command}));
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C2C2C),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFF3A3A3A)),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(color: Color(0xFFE8E8F0), fontSize: 12),
+          ),
+        ),
       ),
     );
   }

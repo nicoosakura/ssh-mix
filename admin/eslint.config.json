@@ -1,0 +1,13 @@
+{
+    "plugins": [
+        "vue"
+    ],
+    "rules": {
+        "vue/multi-word-component-names": "off",
+        "vue/no-unused-vars": "warn",
+        "no-unused-vars": "warn"
+    },
+    "ignores": [
+        "dist/**"
+    ]
+}

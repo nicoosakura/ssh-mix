@@ -140,6 +140,7 @@ func Login(c *gin.Context) {
 		"token":    token,
 		"username": user.Username,
 		"user_id":  user.ID,
+		"role":     user.Role,
 	})
 }
 

@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"server-manager/api"
 	"server-manager/config"
 	"server-manager/middleware"
+	"server-manager/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -189,8 +191,10 @@ func main() {
 		c.Next()
 	})
 
-	// 静态资源：给浏览器访问网页版后台。访问 /admin 时自动提供 ./public/ 下面的网页
-	r.Static("/admin", "./public")
+	// 静态资源：Vue 3 Admin 管理后台
+	r.Static("/admin/assets", "../admin/dist/assets")
+	r.StaticFile("/admin/", "../admin/dist/index.html")
+	r.StaticFile("/admin", "../admin/dist/index.html")
 
 	// API 路由组
 	v1 := r.Group("/api")
@@ -198,7 +202,7 @@ func main() {
 		// 认证（不需要 JWT）
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/login", api.Login)
+			auth.POST("/login", middleware.LoginRateLimiter(), api.Login)
 			auth.POST("/logout", api.Logout)
 			auth.GET("/public-key", api.GetLoginPublicKey)
 		}
@@ -252,13 +256,22 @@ func main() {
 				adminGroup.POST("/users", api.AdminCreateUser)
 				adminGroup.PUT("/users/:uid", api.AdminUpdateUser)
 				adminGroup.DELETE("/users/:uid", api.AdminDeleteUser)
+				adminGroup.DELETE("/users/batch", api.AdminBatchDeleteUsers)
+				adminGroup.POST("/users/:uid/reset-password", api.AdminResetPassword)
 				adminGroup.GET("/users/:uid/servers", api.AdminGetUserServers)
 				adminGroup.GET("/system/info", api.AdminGetSystemInfo)
 				adminGroup.GET("/audit-logs", api.AdminGetAuditLogs)
 				adminGroup.GET("/all-servers", api.AdminGetAllServers)
 				adminGroup.DELETE("/all-servers/:id", api.AdminDeleteServer)
+				adminGroup.DELETE("/all-servers/batch", api.AdminBatchDeleteServers)
 				adminGroup.GET("/all-scripts", api.AdminGetAllScripts)
 				adminGroup.DELETE("/all-scripts/:id", api.AdminDeleteScript)
+				adminGroup.GET("/export", api.AdminExportServers)
+
+				// SQLite Backup API
+				adminGroup.GET("/backups", api.AdminGetBackups)
+				adminGroup.POST("/backups/create", api.AdminCreateBackup)
+				adminGroup.POST("/backups/restore/:filename", api.AdminRestoreBackup)
 			}
 		}
 	}
@@ -300,7 +313,20 @@ func main() {
 	fmt.Println(dim + "  等待请求中..." + reset)
 	fmt.Println()
 
-	if err := r.Run(port); err != nil {
-		log.Fatal(err)
+	// 启动后台冷备计划
+	utils.InitBackupScheduler()
+
+	// 启动 (支持 TLS)
+	cert := os.Getenv("TLS_CERT")
+	key := os.Getenv("TLS_KEY")
+	if cert != "" && key != "" {
+		fmt.Printf("  %s🔒 TLS 模式已启用: https://localhost%s%s\n", green+bold, port, reset)
+		if err := r.RunTLS(port, cert, key); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		if err := r.Run(port); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
